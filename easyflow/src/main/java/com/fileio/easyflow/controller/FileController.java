@@ -7,6 +7,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -20,11 +22,18 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fileio.easyflow.model.FileModel;
+import com.fileio.easyflow.service.FileModelService;
+
 @Controller
 public class FileController {
 
 	// Save the uploaded file to this folder
 	private static String UPLOADED_FOLDER = "/Users/Nilay Nagar/Desktop/files";
+	
+	@Autowired
+	private FileModelService fileModelService;
+	
 
 	
 	/*
@@ -38,23 +47,13 @@ public class FileController {
 	 */
 	@GetMapping("/")
 	public String index(Model model) {
-		List<String> list = new ArrayList<String>();
-		File files = new File(UPLOADED_FOLDER);
-		String[] fileList = ((File) files).list();
-		for (String name : fileList) {
-			list.add(name);
-			System.out.println(name);
+		List<FileModel> list = fileModelService.getAllFiles();
+		List<String> filenames = new ArrayList<>();
+		for(FileModel f:list) {
+			filenames.add(f.getName());
 		}
-		model.addAttribute("list", list);
+		model.addAttribute("list", filenames);
 		return "upload";
-
-		/*
-		 * File folder = new File(UPLOADED_FOLDER); File[] listOfFiles =
-		 * folder.listFiles(); List<String> fileNames = new ArrayList<>(); for (int i =
-		 * 0; i < listOfFiles.length; i++) { if (listOfFiles[i].isFile()) {
-		 * fileNames.add(listOfFiles[i].getName()); } } model.addAttribute("list",
-		 * fileNames); return "index";
-		 */
 	}
 	
 
@@ -89,28 +88,10 @@ public class FileController {
 			model.addAttribute("warning", "Please select a file to upload");
 			return "upload";
 		}
-		
-		try {
-
-			byte[] bytes = file.getBytes(); // contents of a file
-			Path path = Paths.get(UPLOADED_FOLDER 
-					             + file.getOriginalFilename()); // path to a specific path as a dest
-			Files.write(path, bytes); // so this action can get a direction.
-
-			model.addAttribute("message", "You successfully uploaded '"
-			                   + file.getOriginalFilename() + "'");
-
-		} catch (IOException e) {
-			model.addAttribute("error", "Error");
-			return "upload";
-		}
-		List<String> list = new ArrayList<String>();
-		File files = new File(UPLOADED_FOLDER);
-		String[] fileList = ((File) files).list();
-		for (String name : fileList) {
-			list.add(name);
-		}
-		model.addAttribute("list", list);
+		FileModel fileModel = new FileModel(file);
+		fileModelService.saveFile(fileModel);
+		//model.addAttribute("list", list);
+		model.addAttribute("message", "You successfully uploaded '" + file.getOriginalFilename() + "'");
 		return "upload";
 
 	}
